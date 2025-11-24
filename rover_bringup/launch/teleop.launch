@@ -1,0 +1,15 @@
+<launch>
+  <node pkg="joy" type="joy_node" name="joy_node" output="screen">
+    <param name="dev" value="/dev/input/js0"/>
+    <param name="deadzone" value="0.15"/>
+  </node>
+  <node pkg="teleop_twist_joy" type="teleop_node" name="joy_teleop" output="screen">
+    <rosparam>
+      axis_linear: 1
+      scale_linear: 1.0
+      axis_angular: 3
+      scale_angular: 1.0
+      enable_button: 5
+    </rosparam>
+  </node>
+</launch>

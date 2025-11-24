@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="rover_base" type="diagnostics_node.py" name="diagnostics_node" output="screen"/>
+</launch>

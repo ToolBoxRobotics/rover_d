@@ -1,0 +1,5 @@
+<launch>
+  <node pkg="rover_base" type="cmd_vel_watchdog.py" name="cmd_vel_watchdog" output="screen">
+    <param name="timeout" value="0.5"/>
+  </node>
+</launch>

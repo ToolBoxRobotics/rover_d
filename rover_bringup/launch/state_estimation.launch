@@ -1,0 +1,8 @@
+<launch>
+  <node pkg="robot_localization" type="ekf_localization_node" name="ekf_odom" output="screen">
+    <rosparam file="$(find rover_navigation)/config/ekf_odom.yaml" command="load"/>
+  </node>
+  <node pkg="robot_localization" type="ekf_localization_node" name="ekf_map" output="screen">
+    <rosparam file="$(find rover_navigation)/config/ekf_map.yaml" command="load"/>
+  </node>
+</launch>
