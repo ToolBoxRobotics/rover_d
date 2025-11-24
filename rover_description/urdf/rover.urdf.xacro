@@ -1,0 +1,414 @@
+<?xml version="1.0"?>
+<robot name="six_wheel_rover" xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+  <!-- ============================ Properties ============================ -->
+  <xacro:property name="pi" value="3.1415926535897931"/>
+
+  <!-- Chassis dims (meters) -->
+  <xacro:property name="body_length" value="0.70"/>
+  <xacro:property name="body_width"  value="0.45"/>
+  <xacro:property name="body_height" value="0.20"/>
+
+  <!-- Wheel geometry -->
+  <xacro:property name="wheel_radius" value="0.07"/>
+  <xacro:property name="wheel_width"  value="0.04"/>
+
+  <!-- Rover kinematics -->
+  <xacro:property name="wheelbase"   value="0.50"/>  <!-- front axle to rear axle -->
+  <xacro:property name="track_width" value="0.40"/>  <!-- left to right (corner wheels) -->
+  <xacro:property name="mid_track"   value="0.36"/>  <!-- mid wheels slightly inboard -->
+  <xacro:property name="mid_x"       value="0.0"/>   <!-- middle axle x -->
+
+  <!-- Mass properties -->
+  <xacro:property name="body_mass" value="18.0"/>
+  <xacro:property name="wheel_mass" value="1.0"/>
+  <xacro:property name="steer_mass" value="0.2"/>
+
+  <!-- Arm link lengths -->
+  <xacro:property name="arm_l1" value="0.12"/>
+  <xacro:property name="arm_l2" value="0.12"/>
+  <xacro:property name="arm_l3" value="0.10"/>
+  <xacro:property name="arm_l4" value="0.08"/>
+  <xacro:property name="arm_l5" value="0.06"/>
+
+  <!-- ============================ Materials ============================ -->
+  <material name="black"><color rgba="0.05 0.05 0.05 1"/></material>
+  <material name="dark_grey"><color rgba="0.25 0.25 0.27 1"/></material>
+  <material name="light_grey"><color rgba="0.65 0.65 0.68 1"/></material>
+  <material name="blue"><color rgba="0.2 0.4 0.9 1"/></material>
+  <material name="orange"><color rgba="0.95 0.55 0.1 1"/></material>
+
+  <!-- =========================== Inertial macros =========================== -->
+  <xacro:macro name="box_inertial" params="m x y z">
+    <inertial>
+      <mass value="${m}"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <inertia ixx="${m*(y*y+z*z)/12.0}" ixy="0" ixz="0"
+               iyy="${m*(x*x+z*z)/12.0}" iyz="0"
+               izz="${m*(x*x+y*y)/12.0}"/>
+    </inertial>
+  </xacro:macro>
+
+  <xacro:macro name="cyl_inertial" params="m r h axis">
+    <!-- axis in x/y/z -->
+    <inertial>
+      <mass value="${m}"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <xacro:if value="${axis == 'y'}">
+        <inertia
+          ixx="${m*(3*r*r+h*h)/12.0}" ixy="0" ixz="0"
+          iyy="${0.5*m*r*r}"          iyz="0"
+          izz="${m*(3*r*r+h*h)/12.0}"/>
+      </xacro:if>
+      <xacro:if value="${axis != 'y'}">
+        <inertia
+          ixx="${0.5*m*r*r}" ixy="0" ixz="0"
+          iyy="${m*(3*r*r+h*h)/12.0}" iyz="0"
+          izz="${m*(3*r*r+h*h)/12.0}"/>
+      </xacro:if>
+    </inertial>
+  </xacro:macro>
+
+  <!-- ============================ Base (chassis) ============================ -->
+  <link name="base_link">
+    <visual>
+      <origin xyz="0 0 ${body_height/2}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${body_length} ${body_width} ${body_height}"/>
+      </geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <collision>
+      <origin xyz="0 0 ${body_height/2}" rpy="0 0 0"/>
+      <geometry>
+        <box size="${body_length} ${body_width} ${body_height}"/>
+      </geometry>
+    </collision>
+    <xacro:box_inertial m="${body_mass}" x="${body_length}" y="${body_width}" z="${body_height}"/>
+  </link>
+
+  <!-- footprint and base_stabilized are useful frames -->
+  <link name="base_footprint"/>
+  <joint name="base_footprint_joint" type="fixed">
+    <parent link="base_footprint"/>
+    <child link="base_link"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <link name="base_stabilized"/>
+  <joint name="base_stabilized_joint" type="fixed">
+    <parent link="base_link"/>
+    <child  link="base_stabilized"/>
+    <origin xyz="0 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- ============================ Wheel macros ============================ -->
+
+  <!-- Steerable corner wheel: steer joint about Z, wheel joint about Y -->
+  <xacro:macro name="steerable_wheel" params="name x y">
+    <link name="${name}_steer_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.02" length="0.03"/></geometry>
+        <material name="light_grey"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="0 0 0"/>
+        <geometry><cylinder radius="0.02" length="0.03"/></geometry>
+      </collision>
+      <xacro:cyl_inertial m="${steer_mass}" r="0.02" h="0.03" axis="z"/>
+    </link>
+
+    <joint name="${name}_steer_joint" type="revolute">
+      <parent link="base_link"/>
+      <child  link="${name}_steer_link"/>
+      <origin xyz="${x} ${y} ${wheel_radius}" rpy="0 0 0"/>
+      <axis xyz="0 0 1"/>
+      <limit lower="${-45*pi/180}" upper="${45*pi/180}" effort="40" velocity="1.5"/>
+      <dynamics damping="2.0" friction="1.0"/>
+    </joint>
+
+    <link name="${name}_wheel_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+        <material name="black"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+      </collision>
+      <xacro:cyl_inertial m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}" axis="y"/>
+    </link>
+
+    <joint name="${name}_wheel_joint" type="continuous">
+      <parent link="${name}_steer_link"/>
+      <child  link="${name}_wheel_link"/>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <dynamics damping="0.1" friction="0.2"/>
+    </joint>
+
+    <!-- ros_control transmissions -->
+    <transmission name="${name}_wheel_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${name}_wheel_joint">
+        <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="${name}_wheel_motor">
+        <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+
+    <transmission name="${name}_steer_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${name}_steer_joint">
+        <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="${name}_steer_servo">
+        <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+  </xacro:macro>
+
+  <!-- Fixed mid wheel (no steering) -->
+  <xacro:macro name="fixed_wheel" params="name x y">
+    <link name="${name}_wheel_link">
+      <visual>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+        <material name="black"/>
+      </visual>
+      <collision>
+        <origin xyz="0 0 0" rpy="${pi/2} 0 0"/>
+        <geometry><cylinder radius="${wheel_radius}" length="${wheel_width}"/></geometry>
+      </collision>
+      <xacro:cyl_inertial m="${wheel_mass}" r="${wheel_radius}" h="${wheel_width}" axis="y"/>
+    </link>
+
+    <joint name="${name}_wheel_joint" type="continuous">
+      <parent link="base_link"/>
+      <child  link="${name}_wheel_link"/>
+      <origin xyz="${x} ${y} ${wheel_radius}" rpy="0 0 0"/>
+      <axis xyz="0 1 0"/>
+      <dynamics damping="0.1" friction="0.2"/>
+    </joint>
+
+    <transmission name="${name}_wheel_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${name}_wheel_joint">
+        <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="${name}_wheel_motor">
+        <hardwareInterface>hardware_interface/VelocityJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+  </xacro:macro>
+
+  <!-- ============================ Wheels placement ============================ -->
+  <!-- 4 steerable corners -->
+  <xacro:steerable_wheel name="wheel_fl" x="${ wheelbase/2}" y="${ track_width/2}"/>
+  <xacro:steerable_wheel name="wheel_fr" x="${ wheelbase/2}" y="${-track_width/2}"/>
+  <xacro:steerable_wheel name="wheel_rl" x="${-wheelbase/2}" y="${ track_width/2}"/>
+  <xacro:steerable_wheel name="wheel_rr" x="${-wheelbase/2}" y="${-track_width/2}"/>
+
+  <!-- 2 fixed mid wheels -->
+  <xacro:fixed_wheel name="wheel_ml" x="${mid_x}" y="${ mid_track/2}"/>
+  <xacro:fixed_wheel name="wheel_mr" x="${mid_x}" y="${-mid_track/2}"/>
+
+  <!-- ============================ Sensors ============================ -->
+  <link name="imu_link">
+    <visual>
+      <origin xyz="0 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.03 0.03 0.01"/></geometry>
+      <material name="blue"/>
+    </visual>
+    <xacro:box_inertial m="0.05" x="0.03" y="0.03" z="0.01"/>
+  </link>
+  <joint name="imu_joint" type="fixed">
+    <parent link="base_link"/>
+    <child  link="imu_link"/>
+    <origin xyz="0 0 ${body_height*0.75}" rpy="0 0 0"/>
+  </joint>
+
+  <link name="gps_link">
+    <visual>
+      <geometry><cylinder radius="0.02" length="0.02"/></geometry>
+      <material name="orange"/>
+    </visual>
+    <xacro:cyl_inertial m="0.05" r="0.02" h="0.02" axis="z"/>
+  </link>
+  <joint name="gps_joint" type="fixed">
+    <parent link="base_link"/>
+    <child  link="gps_link"/>
+    <origin xyz="0 0 ${body_height + 0.05}" rpy="0 0 0"/>
+  </joint>
+
+  <link name="camera_link">
+    <visual>
+      <geometry><box size="0.08 0.04 0.03"/></geometry>
+      <material name="light_grey"/>
+    </visual>
+    <xacro:box_inertial m="0.25" x="0.08" y="0.04" z="0.03"/>
+  </link>
+  <joint name="camera_joint" type="fixed">
+    <parent link="base_link"/>
+    <child  link="camera_link"/>
+    <origin xyz="${body_length/2 - 0.05} 0 ${body_height}" rpy="0 0 0"/>
+  </joint>
+
+  <!-- optical frame for RGB camera -->
+  <link name="camera_optical_frame"/>
+  <joint name="camera_optical_joint" type="fixed">
+    <parent link="camera_link"/>
+    <child link="camera_optical_frame"/>
+    <origin xyz="0 0 0" rpy="${-pi/2} 0 ${-pi/2}"/>
+  </joint>
+
+  <!-- ============================ Arm ============================ -->
+  <link name="arm_base_link">
+    <visual>
+      <geometry><cylinder radius="0.035" length="0.05"/></geometry>
+      <material name="dark_grey"/>
+    </visual>
+    <xacro:cyl_inertial m="0.5" r="0.035" h="0.05" axis="z"/>
+  </link>
+  <joint name="arm_base_joint" type="fixed">
+    <parent link="base_link"/>
+    <child  link="arm_base_link"/>
+    <origin xyz="0.0 ${body_width/2 - 0.08} ${body_height}" rpy="0 0 0"/>
+  </joint>
+
+  <xacro:macro name="arm_link" params="name length radius mass color">
+    <link name="${name}">
+      <visual>
+        <origin xyz="${length/2} 0 0" rpy="0 0 0"/>
+        <geometry><cylinder radius="${radius}" length="${length}"/></geometry>
+        <material name="${color}"/>
+      </visual>
+      <collision>
+        <origin xyz="${length/2} 0 0" rpy="0 0 0"/>
+        <geometry><cylinder radius="${radius}" length="${length}"/></geometry>
+      </collision>
+      <xacro:cyl_inertial m="${mass}" r="${radius}" h="${length}" axis="x"/>
+    </link>
+  </xacro:macro>
+
+  <xacro:arm_link name="link_1" length="${arm_l1}" radius="0.02" mass="0.6" color="light_grey"/>
+  <joint name="joint_1" type="revolute">
+    <parent link="arm_base_link"/>
+    <child link="link_1"/>
+    <origin xyz="0 0 0.05" rpy="0 0 0"/>
+    <axis xyz="0 0 1"/>
+    <limit lower="${-pi}" upper="${pi}" effort="15" velocity="1.2"/>
+  </joint>
+
+  <xacro:arm_link name="link_2" length="${arm_l2}" radius="0.018" mass="0.5" color="light_grey"/>
+  <joint name="joint_2" type="revolute">
+    <parent link="link_1"/>
+    <child link="link_2"/>
+    <origin xyz="${arm_l1} 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="${-pi/2}" upper="${pi/2}" effort="12" velocity="1.2"/>
+  </joint>
+
+  <xacro:arm_link name="link_3" length="${arm_l3}" radius="0.016" mass="0.4" color="blue"/>
+  <joint name="joint_3" type="revolute">
+    <parent link="link_2"/>
+    <child link="link_3"/>
+    <origin xyz="${arm_l2} 0 0" rpy="0 0 0"/>
+    <axis xyz="0 1 0"/>
+    <limit lower="${-pi/2}" upper="${pi/2}" effort="10" velocity="1.2"/>
+  </joint>
+
+  <xacro:arm_link name="link_4" length="${arm_l4}" radius="0.014" mass="0.25" color="blue"/>
+  <joint name="joint_4" type="revolute">
+    <parent link="link_3"/>
+    <child link="link_4"/>
+    <origin xyz="${arm_l3} 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="${-pi/2}" upper="${pi/2}" effort="8" velocity="1.5"/>
+  </joint>
+
+  <xacro:arm_link name="link_5" length="${arm_l5}" radius="0.012" mass="0.2" color="orange"/>
+  <joint name="joint_5" type="revolute">
+    <parent link="link_4"/>
+    <child link="link_5"/>
+    <origin xyz="${arm_l4} 0 0" rpy="0 0 0"/>
+    <axis xyz="1 0 0"/>
+    <limit lower="${-pi/2}" upper="${pi/2}" effort="6" velocity="1.8"/>
+  </joint>
+
+  <link name="arm_tool_link">
+    <visual>
+      <origin xyz="0.03 0 0" rpy="0 0 0"/>
+      <geometry><box size="0.06 0.03 0.02"/></geometry>
+      <material name="light_grey"/>
+    </visual>
+    <xacro:box_inertial m="0.15" x="0.06" y="0.03" z="0.02"/>
+  </link>
+  <joint name="tool_joint" type="fixed">
+    <parent link="link_5"/>
+    <child link="arm_tool_link"/>
+    <origin xyz="${arm_l5} 0 0" rpy="0 0 0"/>
+  </joint>
+
+  <!-- Arm transmissions -->
+  <xacro:macro name="arm_trans" params="joint">
+    <transmission name="${joint}_trans">
+      <type>transmission_interface/SimpleTransmission</type>
+      <joint name="${joint}">
+        <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+      </joint>
+      <actuator name="${joint}_motor">
+        <hardwareInterface>hardware_interface/PositionJointInterface</hardwareInterface>
+        <mechanicalReduction>1</mechanicalReduction>
+      </actuator>
+    </transmission>
+  </xacro:macro>
+  <xacro:arm_trans joint="joint_1"/>
+  <xacro:arm_trans joint="joint_2"/>
+  <xacro:arm_trans joint="joint_3"/>
+  <xacro:arm_trans joint="joint_4"/>
+  <xacro:arm_trans joint="joint_5"/>
+
+  <!-- ============================ Gazebo tags ============================ -->
+  <gazebo reference="base_link">
+    <material>Gazebo/DarkGrey</material>
+  </gazebo>
+  <gazebo reference="camera_link">
+    <material>Gazebo/White</material>
+    <sensor name="kinect_depth" type="depth">
+      <always_on>true</always_on>
+      <update_rate>30</update_rate>
+      <camera>
+        <horizontal_fov>1.047</horizontal_fov>
+        <image><width>640</width><height>480</height><format>R8G8B8</format></image>
+        <clip><near>0.1</near><far>5.0</far></clip>
+      </camera>
+      <plugin name="gazebo_ros_depth_camera" filename="libgazebo_ros_openni_kinect.so">
+        <cameraName>camera</cameraName>
+        <frameName>camera_link</frameName>
+        <imageTopicName>rgb/image_raw</imageTopicName>
+        <depthImageTopicName>depth/image_raw</depthImageTopicName>
+        <pointCloudTopicName>depth/points</pointCloudTopicName>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+  <gazebo reference="imu_link">
+    <sensor name="imu_sensor" type="imu">
+      <always_on>true</always_on>
+      <update_rate>100</update_rate>
+      <plugin name="gazebo_ros_imu" filename="libgazebo_ros_imu.so">
+        <topicName>imu/data</topicName>
+        <bodyName>imu_link</bodyName>
+        <frameName>imu_link</frameName>
+      </plugin>
+    </sensor>
+  </gazebo>
+
+</robot>

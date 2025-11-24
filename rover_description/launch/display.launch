@@ -1,0 +1,7 @@
+<launch>
+  <arg name="use_gui" default="true"/>
+  <param name="robot_description"
+         command="$(find xacro)/xacro $(find rover_description)/urdf/rover.urdf.xacro"/>
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher"/>
+  <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher" if="$(arg use_gui)"/>
+</launch>
