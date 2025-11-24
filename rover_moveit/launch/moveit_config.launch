@@ -1,0 +1,10 @@
+<launch>
+  <!-- Load robot description from URDF -->
+  <param name="robot_description" command="rosparam load $(find rover_description)/urdf/rover.urdf.xacro"/>
+
+  <!-- Start move_group (MoveIt main planning node) -->
+  <node pkg="moveit_commander" type="move_group" name="move_group" output="screen"/>
+
+  <!-- Start RViz with MoveIt visualization -->
+  <node pkg="rviz" type="rviz" name="rviz" args="-d $(find rover_moveit)/rviz/moveit.rviz"/>
+</launch>

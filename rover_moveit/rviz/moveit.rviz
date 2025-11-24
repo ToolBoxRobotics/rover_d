@@ -1,0 +1,19 @@
+Panels:
+  - Class: rviz/Displays
+    Name: Displays
+  - Class: rviz/Selection
+    Name: Selection
+  - Class: rviz/Tool Properties
+    Name: Tool Properties
+Visualization Manager:
+  Class: ""
+  Displays:
+    - Class: rviz/Grid
+      Name: Grid
+    - Class: rviz/TF
+      Name: TF
+      Frame Timeout: 5
+    - Class: rviz/RobotModel
+      Name: RobotModel
+      Robot Description: robot_description
+  Fixed Frame: base_link
