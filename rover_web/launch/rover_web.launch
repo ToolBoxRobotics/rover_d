@@ -1,0 +1,7 @@
+<launch>
+  <!-- Start ROSBridge for WebSocket communication -->
+  <node pkg="rosbridge_websocket" type="rosbridge_websocket" name="rosbridge_websocket" output="screen"/>
+
+  <!-- Start web API server (Python Flask) -->
+  <node pkg="rover_web" type="rover_api_server.py" name="rover_api_server" output="screen"/>
+</launch>
