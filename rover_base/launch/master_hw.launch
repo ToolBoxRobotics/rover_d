@@ -1,0 +1,23 @@
+<launch>
+  <arg name="base_serial_port" default="/dev/ttyACM0"/>
+  <arg name="arm_serial_port"  default="/dev/ttyACM1"/>
+  <arg name="gps_port" default="/dev/ttyUSB0"/>
+
+  <param name="robot_description" command="$(find xacro)/xacro $(find rover_description)/urdf/rover.urdf.xacro"/>
+  <node pkg="robot_state_publisher" type="robot_state_publisher" name="robot_state_publisher" output="screen"/>
+  <node pkg="joint_state_publisher" type="joint_state_publisher" name="joint_state_publisher" output="screen"/>
+
+  <node pkg="rosserial_python" type="serial_node.py" name="rover_base_serial" output="screen">
+    <param name="port" value="$(arg base_serial_port)"/><param name="baud" value="57600"/>
+  </node>
+  <node pkg="rosserial_python" type="serial_node.py" name="arm_serial" output="screen">
+    <param name="port" value="$(arg arm_serial_port)"/><param name="baud" value="57600"/>
+  </node>
+
+  <node pkg="rover_base" type="imu_node.py" name="imu_node" output="screen"/>
+  <node pkg="rover_base" type="ina219_node.py" name="ina219_node" output="screen"/>
+
+  <node pkg="nmea_navsat_driver" type="nmea_serial_driver" name="gps_node" output="screen">
+    <param name="port" value="$(arg gps_port)"/><param name="baud" value="9600"/><param name="frame_id" value="gps_link"/>
+  </node>
+</launch>
