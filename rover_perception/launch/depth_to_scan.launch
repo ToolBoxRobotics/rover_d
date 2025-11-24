@@ -1,0 +1,9 @@
+<launch>
+  <node pkg="nodelet" type="nodelet" name="perception_manager2" args="manager"/>
+  <node pkg="nodelet" type="nodelet" name="depth_to_scan"
+    args="load depthimage_to_laserscan/DepthImageToLaserScanNodelet perception_manager2">
+    <remap from="image" to="/camera/depth/image_raw"/>
+    <remap from="scan" to="/scan"/>
+    <param name="output_frame_id" value="camera_link"/>
+  </node>
+</launch>
