@@ -1,0 +1,3 @@
+<launch>
+  <node pkg="rover_arm" type="arm_control_node.py" name="arm_control_node" output="screen"/>
+</launch>
