@@ -1,0 +1,37 @@
+controller_manager:
+  ros__parameters:
+    update_rate: 50
+    controllers:
+      - name: "joint_state_controller"
+        type: "joint_state_controller/JointStateController"
+        joints:
+          - "wheel_fl_joint"
+          - "wheel_fr_joint"
+          - "wheel_rl_joint"
+          - "wheel_rr_joint"
+      - name: "diff_drive_controller"
+        type: "diff_drive_controller/DiffDriveController"
+        joints:
+          - "wheel_fl_joint"
+          - "wheel_fr_joint"
+          - "wheel_rl_joint"
+          - "wheel_rr_joint"
+        pid:
+          p: 20.0
+          i: 0.1
+          d: 0.1
+        wheel_separation: 0.5
+        wheel_radius: 0.07
+        command_timeout: 1.0
+      - name: "steering_controller"
+        type: "position_controllers/JointPositionController"
+        joints:
+          - "wheel_fl_steer_joint"
+          - "wheel_fr_steer_joint"
+          - "wheel_rl_steer_joint"
+          - "wheel_rr_steer_joint"
+        pid:
+          p: 50.0
+          i: 0.2
+          d: 0.2
+        command_timeout: 1.0
