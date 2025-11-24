@@ -34,7 +34,7 @@
    - A4988 stepper driver interface
    - calibration (limit switch) logic
 
-6. ``rover_navigation``
+5. ``rover_navigation``
    - EKF (robot_localization)
    - costmap config
    - global/local planner
@@ -42,24 +42,23 @@
    - map server
    - AMCL / SLAM Toolbox (your choice)
 
-8. ``rover_simulation``
+6. ``rover_simulation``
    - Gazebo world
    - Gazebo plugins for motors
    - simulated sensors (IMU, GPS, Kinect)
    - simulated 6-wheel steering + control
 
-9. ``rover_perception``
-   - Kinect RGB-D driver
+7. ``rover_perception``   - Kinect RGB-D driver
    - OpenCV pipeline
    - obstacle detection
    - visual odometry / feature tracker
 
-10. ``rover_moveit``
+8. ``rover_moveit``
    - MoveIt setup assistant config
    - SRDF, kinematics.yaml
    - Move group launch
 
-11. Extras
+9. Extras
     - ``rover_web`` interface (React build directory)
     - ``scripts/flash.sh``, ``build.sh``, systemd units
     - Example mission behaviors (behavior trees)
