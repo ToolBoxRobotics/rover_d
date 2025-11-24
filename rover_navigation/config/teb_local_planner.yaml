@@ -1,0 +1,9 @@
+TebLocalPlannerROS:
+  odom_topic: odom
+  map_frame: map
+  max_vel_x: 1.0
+  max_vel_theta: 1.0
+  acc_lim_x: 1.0
+  acc_lim_theta: 1.0
+  min_obstacle_dist: 0.3
+  inflation_dist: 0.5

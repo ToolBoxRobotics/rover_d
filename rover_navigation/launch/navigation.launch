@@ -1,0 +1,11 @@
+<launch>
+  <node pkg="map_server" name="map_server" type="map_server" args="$(find rover_navigation)/maps/map.yaml"/>
+  <node pkg="amcl" type="amcl" name="amcl"><rosparam file="$(find rover_navigation)/config/amcl.yaml"/></node>
+  <node pkg="move_base" type="move_base" name="move_base" output="screen">
+    <rosparam file="$(find rover_navigation)/config/global_costmap.yaml"/>
+    <rosparam file="$(find rover_navigation)/config/local_costmap.yaml"/>
+    <rosparam file="$(find rover_navigation)/config/teb_local_planner.yaml"/>
+    <param name="base_local_planner" value="teb_local_planner/TebLocalPlannerROS"/>
+  </node>
+  <node pkg="rover_navigation" type="bt_autonomy.py" name="bt_autonomy" output="screen"/>
+</launch>
